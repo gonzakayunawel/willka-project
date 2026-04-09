@@ -1,0 +1,50 @@
+# Configuración de ejemplo para WILLKA
+# Copiar a config.toml y ajustar según necesidades
+
+[directorios]
+input_dir = "data/input"
+stems_dir = "data/stems"
+midi_dir = "data/midi"
+output_dir = "data/output"
+
+[demucs]
+model = "htdemucs_6s"
+device = "cuda"  # "cpu" como fallback
+
+[basic_pitch]
+onset_threshold = 0.4
+frame_threshold = 0.25
+minimum_note_length = 0.100
+minimum_frequency = 40.0    # Hz (rango contrabajo)
+maximum_frequency = 4200.0  # Hz (rango piccolo/violín agudo)
+
+[partitura]
+tempo_bpm = 100
+title = "Desde Antofagasta a Tiahuanaco"
+composer = "Gonzalo Cayunao Erices (KayuNawel)"
+year = 2009
+
+[musescore]
+path = "/usr/bin/mscore4"
+
+[logging]
+level = "INFO"  # DEBUG, INFO, WARNING, ERROR
+
+# Metadatos de la obra (opcional)
+[metadata.obra]
+title = "Desde Antofagasta a Tiahuanaco"
+composer = "Gonzalo Cayunao Erices (KayuNawel)"
+year = 2009
+notes = """
+Mención Honrosa — Concurso Bicentenario de Chile, Antofagasta.
+Obra programática para orquesta juvenil basada en música típica
+del norte de Chile. Escala pentatónica. Énfasis en vientos y maderas.
+"""
+
+# Mapeo de stems a instrumentos
+[mapeo.stems]
+other = ["Flute", "Oboe", "Clarinet", "Bassoon", "Horn", "Trumpet", "Trombone"]
+guitar = ["Violin", "Viola", "Cello", "Contrabass"]
+bass = ["Contrabass"]
+piano = ["Harp", "Timpani"]
+drums = ["Timpani", "Percussion"]

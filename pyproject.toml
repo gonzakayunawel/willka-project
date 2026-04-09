@@ -1,0 +1,32 @@
+[project]
+name = "willka"
+version = "1.0.0"
+description = "WILLKA — Pipeline de transcripción musical: MP3 → MIDI → Partitura orquestal"
+authors = [{ name = "Gonzalo Cayunao Erices", email = "kayunawel@example.com" }]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "demucs>=4.0.0",
+    "basic-pitch>=0.3.0",
+    "music21>=9.0.0",
+    "pretty_midi>=0.2.10",
+    "torch>=2.0.0",
+    "torchaudio>=2.0.0",
+    "numpy>=1.24.0",
+    "librosa>=0.10.0",
+    "soundfile>=0.12.0",
+    "rich>=13.0.0",
+    "typer>=0.9.0",
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov",
+    "jupyter",
+    "matplotlib",
+]
+
+[project.scripts]
+willka = "willka.cli:app"
