@@ -2,11 +2,12 @@
 
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional
+
 
 from music21 import converter, instrument, metadata, note, stream, tempo
 
 from .config import OBRA_METADATA, STEM_TO_INSTRUMENT
+from .exceptions import ScoreBuildingError
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +17,12 @@ class ScoreBuilder:
 
     def __init__(
         self,
-        title: Optional[str] = None,
-        composer: Optional[str] = None,
+        title: str | None = None,
+        composer: str | None = None,
         tempo_bpm: int = 100,
-        year: Optional[int] = None,
-        notes: Optional[str] = None,
-    ):
+        year: int | None = None,
+        notes: str | None = None,
+    ) -> None:
         """
         Inicializa el constructor de partitura.
 
@@ -43,7 +44,7 @@ class ScoreBuilder:
         logger.info(f"  Tempo: {tempo_bpm} BPM")
         logger.info(f"  Año: {self.year}")
 
-    def build(self, midi_files: Dict[str, Path]) -> stream.Score:
+    def build(self, midi_files: dict[str, Path]) -> stream.Score:
         """
         Construye un Score de music21 a partir de los MIDIs por stem.
 
@@ -127,12 +128,18 @@ class ScoreBuilder:
                         f"Parte '{instr_name}' agregada para stem '{stem_name}'"
                     )
 
-        except Exception as e:
-            logger.error(f"Error procesando stem '{stem_name}' ({midi_path}): {e}")
+        except (FileNotFoundError, PermissionError) as e:
+            logger.error(
+                f"Error de archivo procesando stem '{stem_name}' ({midi_path}): {e}"
+            )
+        except (ValueError, AttributeError) as e:
+            logger.error(
+                f"Error de datos procesando stem '{stem_name}' ({midi_path}): {e}"
+            )
 
     def _create_instrument_part(
         self, instrument_name: str, midi_stream: stream.Stream
-    ) -> Optional[stream.Part]:
+    ) -> stream.Part | None:
         """
         Crea una parte de instrumento a partir de un stream MIDI.
 
@@ -165,8 +172,13 @@ class ScoreBuilder:
 
             return part
 
-        except Exception as e:
-            logger.error(f"Error creando parte para {instrument_name}: {e}")
+        except (AttributeError, ValueError) as e:
+            logger.error(f"Error de datos creando parte para {instrument_name}: {e}")
+            return None
+        except RuntimeError as e:
+            logger.error(
+                f"Error de ejecución creando parte para {instrument_name}: {e}"
+            )
             return None
 
     def _get_music21_instrument(self, instrument_name: str):
@@ -245,9 +257,14 @@ class ScoreBuilder:
             score.write("musicxml", fp=str(output_path))
             logger.info(f"MusicXML exportado: {output_path}")
             return output_path
-        except Exception as e:
-            logger.error(f"Error exportando MusicXML: {e}")
-            raise
+        except (PermissionError, OSError) as e:
+            logger.error(f"Error de sistema exportando MusicXML: {e}")
+            raise ScoreBuildingError(
+                f"No se pudo escribir el archivo MusicXML: {e}"
+            ) from e
+        except (AttributeError, ValueError) as e:
+            logger.error(f"Error de datos exportando MusicXML: {e}")
+            raise ScoreBuildingError(f"Error en los datos de la partitura: {e}") from e
 
     def export_midi_merged(self, score: stream.Score, output_path: Path) -> Path:
         """
@@ -265,6 +282,8 @@ class ScoreBuilder:
             score.write("midi", fp=str(output_path))
             logger.info(f"MIDI unificado exportado: {output_path}")
             return output_path
-        except Exception as e:
-            logger.error(f"Error exportando MIDI unificado: {e}")
+        except (PermissionError, OSError) as e:
+            logger.error(f"Error de sistema exportando MIDI unificado: {e}")
+        except (AttributeError, ValueError) as e:
+            logger.error(f"Error de datos exportando MIDI unificado: {e}")
             raise

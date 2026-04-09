@@ -2,7 +2,6 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -23,8 +22,8 @@ class PipelineConfig:
     onset_threshold: float = 0.4
     frame_threshold: float = 0.25
     minimum_note_length: float = 0.100
-    minimum_frequency: Optional[float] = 40.0  # Hz (rango contrabajo)
-    maximum_frequency: Optional[float] = 4200.0  # Hz (rango piccolo/violín agudo)
+    minimum_frequency: float | None = 40.0  # Hz (rango contrabajo)
+    maximum_frequency: float | None = 4200.0  # Hz (rango piccolo/violín agudo)
 
     # Configuración partitura
     tempo_bpm: int = 100
@@ -38,7 +37,7 @@ class PipelineConfig:
     # Logging
     log_level: str = "INFO"
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         """Convierte strings a Paths después de la inicialización."""
         self.input_dir = Path(self.input_dir)
         self.stems_dir = Path(self.stems_dir)
@@ -47,7 +46,7 @@ class PipelineConfig:
 
 
 # Metadatos de la obra según SDD
-OBRA_METADATA = {
+OBRA_METADATA: dict[str, str | int] = {
     "title": "Desde Antofagasta a Tiahuanaco",
     "composer": "Gonzalo Cayunao Erices (KayuNawel)",
     "year": 2009,
@@ -57,7 +56,7 @@ OBRA_METADATA = {
 }
 
 # Mapeo de stems a instrumentos según SDD
-STEM_TO_INSTRUMENT = {
+STEM_TO_INSTRUMENT: dict[str, list[str]] = {
     "other": ["Flute", "Oboe", "Clarinet", "Bassoon", "Horn", "Trumpet", "Trombone"],
     "guitar": ["Violin", "Viola", "Cello", "Contrabass"],
     "bass": ["Contrabass"],

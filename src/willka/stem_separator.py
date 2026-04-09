@@ -3,12 +3,14 @@
 import logging
 import time
 from pathlib import Path
-from typing import Dict, Optional
+
 
 import numpy as np
 import torch
 from demucs import pretrained
 from demucs.apply import apply_model
+
+from .exceptions import ModelError, AudioProcessingError, DeviceError
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 class StemSeparator:
     """Separador de stems instrumentales usando Demucs."""
 
-    def __init__(self, model: str = "htdemucs_6s", device: Optional[str] = None):
+    def __init__(self, model: str = "htdemucs_6s", device: str | None = None) -> None:
         """
         Inicializa el separador de stems.
 
@@ -41,9 +43,12 @@ class StemSeparator:
             self.model = pretrained.get_model(model)
             self.model.to(self.device)
             logger.info(f"Modelo {model} cargado exitosamente")
-        except Exception as e:
-            logger.error(f"Error al cargar modelo {model}: {e}")
-            raise
+        except ImportError as e:
+            logger.error(f"Error de importación al cargar modelo {model}: {e}")
+            raise ModelError(f"No se pudo cargar el modelo {model}: {e}") from e
+        except RuntimeError as e:
+            logger.error(f"Error de ejecución al cargar modelo {model}: {e}")
+            raise ModelError(f"Error de ejecución con el modelo {model}: {e}") from e
 
         # Stems esperados para htdemucs_6s
         self.expected_stems = ["drums", "bass", "piano", "guitar", "vocals", "other"]
@@ -58,7 +63,7 @@ class StemSeparator:
             "other": "Vientos madera y metal",
         }
 
-    def separate(self, audio_path: Path, output_dir: Path) -> Dict[str, Path]:
+    def separate(self, audio_path: Path, output_dir: Path) -> dict[str, Path]:
         """
         Separa el audio en stems instrumentales.
 
@@ -112,12 +117,19 @@ class StemSeparator:
                     audio_tensor = audio_tensor.repeat(self.model.audio_channels, 1)
 
             wav = audio_tensor.to(self.device)
-            logger.info(
-                f"Audio cargado: {wav.shape[1] / self.model.samplerate:.2f} segundos, {wav.shape[0]} canales"
-            )
-        except Exception as e:
-            logger.error(f"Error al cargar audio {audio_path}: {e}")
-            raise
+            duration = wav.shape[1] / self.model.samplerate
+            channels = wav.shape[0]
+            logger.info(f"Audio cargado: {duration:.2f} segundos, {channels} canales")
+        except (FileNotFoundError, PermissionError) as e:
+            logger.error(f"Error de archivo al cargar audio {audio_path}: {e}")
+            raise AudioProcessingError(
+                f"No se pudo acceder al archivo {audio_path}: {e}"
+            ) from e
+        except (OSError, RuntimeError) as e:
+            logger.error(f"Error de sistema al cargar audio {audio_path}: {e}")
+            raise AudioProcessingError(
+                f"Error procesando audio {audio_path}: {e}"
+            ) from e
 
         # Separar stems
         try:
@@ -159,13 +171,20 @@ class StemSeparator:
                     stem_paths[stem_name] = output_path
                     logger.info(f"Stem '{stem_name}' guardado: {output_path}")
                     logger.debug(f"  Descripción: {self.stem_descriptions[stem_name]}")
-                except Exception as e:
+                except (OSError, RuntimeError) as e:
                     logger.error(f"Error al guardar stem '{stem_name}': {e}")
-                    raise
+                    raise AudioProcessingError(
+                        f"No se pudo guardar el stem '{stem_name}': {e}"
+                    ) from e
 
-        except Exception as e:
-            logger.error(f"Error durante la separación de stems: {e}")
-            raise
+        except RuntimeError as e:
+            logger.error(f"Error de ejecución durante la separación de stems: {e}")
+            raise ModelError(f"Error en el modelo durante la separación: {e}") from e
+        except (MemoryError, torch.cuda.OutOfMemoryError) as e:
+            logger.error(f"Error de memoria durante la separación de stems: {e}")
+            raise DeviceError(
+                f"Memoria insuficiente para procesar el audio: {e}"
+            ) from e
 
         elapsed_time = time.time() - start_time
         logger.info(f"Separación de stems completada en {elapsed_time:.2f} segundos")
@@ -173,7 +192,7 @@ class StemSeparator:
 
         return stem_paths
 
-    def get_device_info(self) -> Dict[str, str]:
+    def get_device_info(self) -> dict[str, str]:
         """Obtiene información del dispositivo."""
         info = {
             "device": self.device,

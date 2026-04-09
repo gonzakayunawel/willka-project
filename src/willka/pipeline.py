@@ -4,7 +4,7 @@ import logging
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
+from collections.abc import Mapping
 
 from rich.console import Console
 from rich.logging import RichHandler
@@ -15,6 +15,10 @@ from .stem_separator import StemSeparator
 from .transcriber import AudioTranscriber
 from .score_builder import ScoreBuilder
 from .exporter import ScoreExporter
+from .exceptions import WillkaError
+
+# Import para type hints
+from music21 import stream
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -25,19 +29,19 @@ class PipelineResult:
     """Resultado de la ejecución del pipeline."""
 
     success: bool
-    stems: Dict[str, Path]
-    midis: Dict[str, Path]
-    musicxml_path: Optional[Path]
-    pdf_path: Optional[Path]
-    parts_dir: Optional[Path]
+    stems: dict[str, Path]
+    midis: dict[str, Path]
+    musicxml_path: Path | None
+    pdf_path: Path | None
+    parts_dir: Path | None
     elapsed_seconds: float
-    errors: List[str]
+    errors: list[str]
 
 
 class TranscriptionPipeline:
     """Pipeline principal de transcripción musical."""
 
-    def __init__(self, config: Optional[PipelineConfig] = None):
+    def __init__(self, config: PipelineConfig | None = None) -> None:
         """
         Inicializa el pipeline de transcripción.
 
@@ -77,7 +81,7 @@ class TranscriptionPipeline:
 
         logger.info("Módulos inicializados exitosamente")
 
-    def _setup_logging(self):
+    def _setup_logging(self) -> None:
         """Configura el sistema de logging."""
         logging.basicConfig(
             level=getattr(logging, self.config.log_level.upper()),
@@ -170,7 +174,7 @@ class TranscriptionPipeline:
                 errors=errors,
             )
 
-        except Exception as e:
+        except WillkaError as e:
             elapsed_time = time.time() - start_time
             error_msg = f"Error en el pipeline: {str(e)}"
             logger.error(error_msg)
@@ -180,6 +184,18 @@ class TranscriptionPipeline:
                 f"\n[bold red]❌ Pipeline falló después de {elapsed_time:.2f} segundos[/bold red]"
             )
             console.print(f"[red]Error: {str(e)}[/red]")
+        except (KeyboardInterrupt, SystemExit):
+            raise
+        except Exception as e:
+            elapsed_time = time.time() - start_time
+            error_msg = f"Error inesperado en el pipeline: {str(e)}"
+            logger.error(error_msg)
+            errors.append(error_msg)
+
+            console.print(
+                f"\n[bold red]❌ Pipeline falló después de {elapsed_time:.2f} segundos[/bold red]"
+            )
+            console.print(f"[red]Error inesperado: {str(e)}[/red]")
 
             return PipelineResult(
                 success=False,
@@ -206,15 +222,17 @@ class TranscriptionPipeline:
         valid_extensions = {".mp3", ".wav", ".flac", ".ogg", ".m4a"}
         if input_audio.suffix.lower() not in valid_extensions:
             logger.warning(
-                f"Extensión no común: {input_audio.suffix}. Extensiones soportadas: {valid_extensions}"
+                f"Extensión no común: {input_audio.suffix}. "
+                f"Extensiones soportadas: {valid_extensions}"
             )
 
         logger.info(
-            f"Archivo de entrada válido: {input_audio} ({input_audio.stat().st_size / 1024 / 1024:.2f} MB)"
+            f"Archivo de entrada válido: {input_audio} "
+            f"({input_audio.stat().st_size / 1024 / 1024:.2f} MB)"
         )
         return True
 
-    def _run_stem_separation(self, input_audio: Path) -> Dict[str, Path]:
+    def _run_stem_separation(self, input_audio: Path) -> dict[str, Path]:
         """Ejecuta la etapa 1: Separación de stems."""
         console.print(
             "\n[bold cyan]🎵 Etapa 1: Separación de stems instrumentales[/bold cyan]"
@@ -235,12 +253,12 @@ class TranscriptionPipeline:
 
         return stems
 
-    def _run_transcription(self, stems: Dict[str, Path]) -> Dict[str, Path]:
+    def _run_transcription(self, stems: Mapping[str, Path]) -> dict[str, Path]:
         """Ejecuta la etapa 2: Transcripción a MIDI."""
         console.print("\n[bold cyan]🎹 Etapa 2: Transcripción audio → MIDI[/bold cyan]")
-        console.print(
-            f"  Parámetros: onset={self.config.onset_threshold}, frame={self.config.frame_threshold}"
-        )
+        onset = self.config.onset_threshold
+        frame = self.config.frame_threshold
+        console.print(f"  Parámetros: onset={onset}, frame={frame}")
 
         midis = self.transcriber.transcribe_all(stems, self.config.midi_dir)
 
@@ -254,7 +272,9 @@ class TranscriptionPipeline:
 
         return midis
 
-    def _run_score_building(self, midis: Dict[str, Path]):
+    def _run_score_building(
+        self, midis: Mapping[str, Path]
+    ) -> tuple[stream.Score, Path]:
         """Ejecuta la etapa 3: Construcción de partitura."""
         console.print(
             "\n[bold cyan]📄 Etapa 3: Construcción de partitura orquestal[/bold cyan]"
@@ -284,7 +304,7 @@ class TranscriptionPipeline:
 
         return score, musicxml_path
 
-    def _run_export(self, musicxml_path: Path):
+    def _run_export(self, musicxml_path: Path) -> tuple[Path, Path]:
         """Ejecuta la etapa 4: Exportación de resultados."""
         console.print("\n[bold cyan]📤 Etapa 4: Exportación de resultados[/bold cyan]")
 
@@ -311,7 +331,8 @@ class TranscriptionPipeline:
 
         if self.exporter.mock_mode:
             console.print(
-                "[yellow]⚠  Nota: MuseScore 4 no está instalado. Se usó modo mock para exportación.[/yellow]"
+                "[yellow]⚠  Nota: MuseScore 4 no está instalado. "
+                "Se usó modo mock para exportación.[/yellow]"
             )
             console.print(
                 "[yellow]   Instale MuseScore 4 para exportación real de partituras.[/yellow]"
@@ -319,7 +340,14 @@ class TranscriptionPipeline:
 
         return pdf_path, parts_dir
 
-    def _print_summary(self, stems, midis, musicxml_path, pdf_path, parts_dir):
+    def _print_summary(
+        self,
+        stems: Mapping[str, Path],
+        midis: Mapping[str, Path],
+        musicxml_path: Path | None,
+        pdf_path: Path | None,
+        parts_dir: Path | None,
+    ) -> None:
         """Imprime un resumen de los resultados."""
         console.print("\n[bold]📊 Resumen de resultados:[/bold]")
         console.print(f"  • Stems generados: {len(stems)}")
@@ -342,12 +370,12 @@ class TranscriptionPipeline:
                         rel_path = item.relative_to(dir_path)
                         console.print(f"    ├── {rel_path}")
 
-    def run_stems_only(self, input_audio: Path) -> Dict[str, Path]:
+    def run_stems_only(self, input_audio: Path) -> dict[str, Path]:
         """Ejecuta solo la separación de stems."""
         console.print("[bold cyan]🎵 Ejecutando solo separación de stems[/bold cyan]")
         return self._run_stem_separation(input_audio)
 
-    def run_transcription_only(self, stems_dir: Path) -> Dict[str, Path]:
+    def run_transcription_only(self, stems_dir: Path) -> dict[str, Path]:
         """Ejecuta solo la transcripción de stems existentes."""
         console.print("[bold cyan]🎹 Ejecutando solo transcripción[/bold cyan]")
 

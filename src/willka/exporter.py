@@ -4,7 +4,9 @@ import logging
 import subprocess
 import shutil
 from pathlib import Path
-from typing import List, Optional
+
+
+from .exceptions import ScoreExportError
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +14,7 @@ logger = logging.getLogger(__name__)
 class ScoreExporter:
     """Exportador de partituras usando MuseScore 4 CLI."""
 
-    def __init__(self, musescore_path: Optional[str] = None):
+    def __init__(self, musescore_path: str | None = None) -> None:
         """
         Inicializa el exportador de partituras.
 
@@ -95,11 +97,11 @@ class ScoreExporter:
         except subprocess.TimeoutExpired:
             logger.error("Timeout al generar PDF")
             raise
-        except Exception as e:
-            logger.error(f"Error inesperado generando PDF: {e}")
-            raise
+        except (OSError, RuntimeError) as e:
+            logger.error(f"Error de sistema generando PDF: {e}")
+            raise ScoreExportError(f"Error exportando PDF: {e}") from e
 
-    def to_parts(self, musicxml_path: Path, output_dir: Path) -> List[Path]:
+    def to_parts(self, musicxml_path: Path, output_dir: Path) -> list[Path]:
         """
         Genera PDF de parte individual por instrumento.
 
@@ -135,11 +137,11 @@ class ScoreExporter:
 
             return [main_pdf]
 
-        except Exception as e:
-            logger.error(f"Error generando partes: {e}")
-            raise
+        except (OSError, RuntimeError) as e:
+            logger.error(f"Error de sistema generando partes: {e}")
+            raise ScoreExportError(f"Error exportando partes: {e}") from e
 
-    def to_png(self, musicxml_path: Path, output_dir: Path) -> List[Path]:
+    def to_png(self, musicxml_path: Path, output_dir: Path) -> list[Path]:
         """
         Genera imágenes PNG por página (para previsualización).
 
@@ -175,9 +177,9 @@ class ScoreExporter:
                 logger.error(f"Error generando PNGs: {result.stderr}")
                 raise RuntimeError(f"Error de MuseScore: {result.stderr}")
 
-        except Exception as e:
-            logger.error(f"Error generando PNGs: {e}")
-            raise
+        except (OSError, RuntimeError) as e:
+            logger.error(f"Error de sistema generando PNGs: {e}")
+            raise ScoreExportError(f"Error exportando PNGs: {e}") from e
 
     # Métodos mock para cuando MuseScore no está disponible
     def _mock_export_pdf(self, musicxml_path: Path, output_path: Path) -> Path:
@@ -195,7 +197,7 @@ class ScoreExporter:
         logger.info(f"Mock PDF creado: {output_path}")
         return output_path
 
-    def _mock_export_parts(self, musicxml_path: Path, output_dir: Path) -> List[Path]:
+    def _mock_export_parts(self, musicxml_path: Path, output_dir: Path) -> list[Path]:
         """Mock para exportación de partes individuales."""
         logger.warning("MODO MOCK: Simulando exportación de partes individuales")
 
@@ -231,7 +233,7 @@ class ScoreExporter:
         logger.info(f"Mock parts creados: {len(generated_files)} archivos")
         return generated_files
 
-    def _mock_export_png(self, musicxml_path: Path, output_dir: Path) -> List[Path]:
+    def _mock_export_png(self, musicxml_path: Path, output_dir: Path) -> list[Path]:
         """Mock para exportación de PNG."""
         logger.warning("MODO MOCK: Simulando exportación de PNG")
 

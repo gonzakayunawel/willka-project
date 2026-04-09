@@ -2,13 +2,14 @@
 
 import sys
 from pathlib import Path
-from typing import Optional
+
 
 import typer
 from rich.console import Console
 
 from .config import PipelineConfig
 from .pipeline import TranscriptionPipeline
+from .exceptions import WillkaError
 
 app = typer.Typer(
     name="willka",
@@ -18,7 +19,7 @@ app = typer.Typer(
 console = Console()
 
 
-def version_callback(value: bool):
+def version_callback(value: bool) -> None:
     """Callback para mostrar la versión."""
     if value:
         from . import __version__
@@ -29,7 +30,7 @@ def version_callback(value: bool):
 
 @app.callback()
 def main(
-    version: Optional[bool] = typer.Option(
+    version: bool | None = typer.Option(
         None,
         "--version",
         "-v",
@@ -37,7 +38,7 @@ def main(
         is_eager=True,
         help="Mostrar versión y salir",
     ),
-):
+) -> None:
     """WILLKA — Pipeline de transcripción musical."""
     pass
 
@@ -52,7 +53,7 @@ def run(
         dir_okay=False,
         readable=True,
     ),
-    config_file: Optional[Path] = typer.Option(
+    config_file: Path | None = typer.Option(
         None,
         "--config",
         "-c",
@@ -68,7 +69,7 @@ def run(
         "-d",
         help="Dispositivo a usar: 'cuda', 'cpu', o 'auto' para detección automática",
     ),
-    output_dir: Optional[Path] = typer.Option(
+    output_dir: Path | None = typer.Option(
         None,
         "--output",
         "-o",
@@ -80,7 +81,7 @@ def run(
         "-l",
         help="Nivel de logging: DEBUG, INFO, WARNING, ERROR",
     ),
-):
+) -> None:
     """
     Ejecuta el pipeline completo de transcripción.
 
@@ -146,7 +147,7 @@ def stems(
         "-m",
         help="Modelo Demucs a usar",
     ),
-):
+) -> None:
     """
     Ejecuta solo la separación de stems.
 
@@ -167,8 +168,13 @@ def stems(
         console.print(f"[green]✓ {len(stems)} stems generados en: {output_dir}[/green]")
         for stem_name, stem_path in stems.items():
             console.print(f"  • {stem_name}: {stem_path}")
+    except WillkaError as e:
+        console.print(f"[red]❌ Error de WILLKA: {e}[/red]")
+        typer.Exit(1)
+    except (KeyboardInterrupt, SystemExit):
+        raise
     except Exception as e:
-        console.print(f"[red]❌ Error: {e}[/red]")
+        console.print(f"[red]❌ Error inesperado: {e}[/red]")
         typer.Exit(1)
 
 
@@ -198,7 +204,7 @@ def transcribe(
         "--frame",
         help="Umbral para detección de frames (0-1)",
     ),
-):
+) -> None:
     """
     Ejecuta solo la transcripción de stems a MIDI.
 
@@ -221,8 +227,13 @@ def transcribe(
         )
         for stem_name, midi_path in midis.items():
             console.print(f"  • {stem_name}: {midi_path}")
+    except WillkaError as e:
+        console.print(f"[red]❌ Error de WILLKA: {e}[/red]")
+        typer.Exit(1)
+    except (KeyboardInterrupt, SystemExit):
+        raise
     except Exception as e:
-        console.print(f"[red]❌ Error: {e}[/red]")
+        console.print(f"[red]❌ Error inesperado: {e}[/red]")
         typer.Exit(1)
 
 
@@ -259,7 +270,7 @@ def build(
         "--tempo",
         help="Tempo en beats por minuto",
     ),
-):
+) -> None:
     """
     Ejecuta solo la construcción de partitura desde MIDIs.
 
@@ -287,13 +298,18 @@ def build(
         console.print(f"[green]✓ PDF esperado: {pdf_path}[/green]")
         console.print(f"[green]✓ Partes individuales: {parts_dir}[/green]")
 
+    except WillkaError as e:
+        console.print(f"[red]❌ Error de WILLKA: {e}[/red]")
+        typer.Exit(1)
+    except (KeyboardInterrupt, SystemExit):
+        raise
     except Exception as e:
-        console.print(f"[red]❌ Error: {e}[/red]")
+        console.print(f"[red]❌ Error inesperado: {e}[/red]")
         typer.Exit(1)
 
 
 @app.command()
-def check():
+def check() -> None:
     """
     Verifica las dependencias y configuración del sistema.
 

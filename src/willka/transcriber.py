@@ -5,7 +5,7 @@ import csv
 import logging
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any
 
 import numpy as np
 from basic_pitch.inference import predict
@@ -13,6 +13,8 @@ from basic_pitch import ICASSP_2022_MODEL_PATH
 from basic_pitch.note_creation import model_output_to_notes
 import pretty_midi
 import soundfile as sf
+
+from .exceptions import TranscriptionError, AudioProcessingError, ModelError
 
 logger = logging.getLogger(__name__)
 
@@ -25,10 +27,10 @@ class AudioTranscriber:
         onset_threshold: float = 0.5,
         frame_threshold: float = 0.3,
         minimum_note_length: float = 0.058,
-        minimum_frequency: Optional[float] = None,
-        maximum_frequency: Optional[float] = None,
-        model_path: Optional[Path] = None,
-    ):
+        minimum_frequency: float | None = None,
+        maximum_frequency: float | None = None,
+        model_path: Path | None = None,
+    ) -> None:
         """
         Inicializa el transcriptor de audio.
 
@@ -114,13 +116,20 @@ class AudioTranscriber:
 
             return output_path
 
-        except Exception as e:
-            logger.error(f"Error transcribiendo {stem_path}: {e}")
-            raise
+        except (FileNotFoundError, PermissionError) as e:
+            logger.error(f"Error de archivo transcribiendo {stem_path}: {e}")
+            raise AudioProcessingError(
+                f"No se pudo acceder al archivo {stem_path}: {e}"
+            ) from e
+        except (ValueError, RuntimeError) as e:
+            logger.error(f"Error de procesamiento transcribiendo {stem_path}: {e}")
+            raise TranscriptionError(
+                f"Error en la transcripción de {stem_path}: {e}"
+            ) from e
 
     def transcribe_all(
-        self, stems: Dict[str, Path], output_dir: Path, max_workers: int = 4
-    ) -> Dict[str, Path]:
+        self, stems: dict[str, Path], output_dir: Path, max_workers: int = 4
+    ) -> dict[str, Path]:
         """
         Transcribe todos los stems en paralelo.
 
@@ -141,13 +150,14 @@ class AudioTranscriber:
         midi_files = {}
 
         # Función para procesar un stem
-        def process_stem(stem_name: str, stem_path: Path) -> Tuple[str, Path]:
+        def process_stem(stem_name: str, stem_path: Path) -> tuple[str, Path]:
             output_path = output_dir / f"{stem_name}.mid"
             try:
                 self.transcribe(stem_path, output_path)
                 return stem_name, output_path
             except Exception as e:
                 logger.error(f"Error procesando stem {stem_name}: {e}")
+                # Re-lanzar la excepción para que sea manejada por el futuro
                 raise
 
         # Procesamiento paralelo
@@ -167,6 +177,7 @@ class AudioTranscriber:
                     logger.info(f"Stem '{stem_name}' transcrito exitosamente")
                 except Exception as e:
                     logger.error(f"Error en futuro para stem '{stem_name}': {e}")
+                    # Continuar con otros stems, no re-lanzar aquí
 
         elapsed_time = time.time() - start_time
         logger.info(
@@ -175,7 +186,7 @@ class AudioTranscriber:
 
         return midi_files
 
-    def _save_note_events_csv(self, note_events: List[dict], csv_path: Path) -> None:
+    def _save_note_events_csv(self, note_events: list[dict], csv_path: Path) -> None:
         """Guarda eventos de notas como CSV."""
         if not note_events:
             logger.warning("No hay eventos de notas para guardar")
@@ -200,7 +211,7 @@ class AudioTranscriber:
 
         logger.debug(f"CSV guardado con {len(note_events)} eventos")
 
-    def get_transcription_stats(self, midi_path: Path) -> Dict[str, any]:
+    def get_transcription_stats(self, midi_path: Path) -> dict[str, Any]:
         """
         Obtiene estadísticas de un archivo MIDI transcrito.
 
@@ -240,6 +251,13 @@ class AudioTranscriber:
 
             return stats
 
-        except Exception as e:
-            logger.error(f"Error obteniendo estadísticas de {midi_path}: {e}")
+        except (FileNotFoundError, PermissionError) as e:
+            logger.error(
+                f"Error de archivo obteniendo estadísticas de {midi_path}: {e}"
+            )
+            return {}
+        except (ValueError, RuntimeError) as e:
+            logger.error(
+                f"Error de procesamiento obteniendo estadísticas de {midi_path}: {e}"
+            )
             return {}
