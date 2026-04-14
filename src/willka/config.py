@@ -21,7 +21,10 @@ class PipelineConfig:
     # Configuración Basic Pitch
     onset_threshold: float = 0.4
     frame_threshold: float = 0.25
-    minimum_note_length: float = 0.100
+    # En basic-pitch >= 0.4.0, minimum_note_length está en MUESTRAS (no segundos).
+    # 127.7 muestras ≈ 58 ms a 44.1 kHz (valor default de la librería).
+    # Para ~100 ms usa 4410 (a 44.1 kHz).
+    minimum_note_length: float = 127.7
     minimum_frequency: float | None = 40.0  # Hz (rango contrabajo)
     maximum_frequency: float | None = 4200.0  # Hz (rango piccolo/violín agudo)
 

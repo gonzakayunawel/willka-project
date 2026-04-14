@@ -184,6 +184,17 @@ class TranscriptionPipeline:
                 f"\n[bold red]❌ Pipeline falló después de {elapsed_time:.2f} segundos[/bold red]"
             )
             console.print(f"[red]Error: {str(e)}[/red]")
+
+            return PipelineResult(
+                success=False,
+                stems={},
+                midis={},
+                musicxml_path=None,
+                pdf_path=None,
+                parts_dir=None,
+                elapsed_seconds=elapsed_time,
+                errors=errors,
+            )
         except (KeyboardInterrupt, SystemExit):
             raise
         except Exception as e:

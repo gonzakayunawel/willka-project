@@ -163,9 +163,13 @@ class StemSeparator:
                     import soundfile as sf
 
                     # Convertir a numpy y asegurar formato correcto
+                    # Demucs produce [channels, samples]; soundfile espera [samples, channels]
                     stem_np = stem_audio.numpy()
-                    if stem_np.ndim > 1:
-                        stem_np = stem_np.squeeze()
+                    if stem_np.ndim == 1:
+                        pass  # mono: ya está en el formato correcto
+                    elif stem_np.shape[0] <= 8:
+                        # Asumimos que la dim pequeña son los canales → transponer
+                        stem_np = stem_np.T
 
                     sf.write(str(output_path), stem_np, self.model.samplerate)
                     stem_paths[stem_name] = output_path

@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 
 
-from music21 import converter, instrument, metadata, note, stream, tempo
+from music21 import chord, converter, instrument, metadata, note, stream, tempo
 
 from .config import OBRA_METADATA, STEM_TO_INSTRUMENT
 from .exceptions import ScoreBuildingError
@@ -164,7 +164,7 @@ class ScoreBuilder:
             # Copiar notas del MIDI (simplificado - en producción se necesitaría
             # un mapeo más sofisticado de las pistas MIDI)
             for element in midi_stream.recurse():
-                if isinstance(element, (note.Note, note.Rest, note.Chord)):
+                if isinstance(element, (note.Note, note.Rest, chord.Chord)):
                     part.append(element)
 
             # Ajustar transposición si es necesario
@@ -190,7 +190,7 @@ class ScoreBuilder:
             "Clarinet": instrument.Clarinet,
             "Bassoon": instrument.Bassoon,
             # Vientos metal
-            "Horn": instrument.FrenchHorn,
+            "Horn": instrument.Horn,
             "Trumpet": instrument.Trumpet,
             "Trombone": instrument.Trombone,
             # Cuerdas
@@ -224,7 +224,7 @@ class ScoreBuilder:
             for element in part.recurse():
                 if isinstance(element, note.Note):
                     element.pitch.transpose(transposition, inPlace=True)
-                elif isinstance(element, note.Chord):
+                elif isinstance(element, chord.Chord):
                     for pitch in element.pitches:
                         pitch.transpose(transposition, inPlace=True)
 

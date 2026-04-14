@@ -7,12 +7,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 from basic_pitch.inference import predict
 from basic_pitch import ICASSP_2022_MODEL_PATH
-from basic_pitch.note_creation import model_output_to_notes
 import pretty_midi
-import soundfile as sf
 
 from .exceptions import TranscriptionError, AudioProcessingError, ModelError
 
@@ -70,22 +67,15 @@ class AudioTranscriber:
         start_time = time.time()
 
         try:
-            # Cargar audio
-            audio, sample_rate = sf.read(str(stem_path))
-
-            # Convertir a mono si es estéreo
-            if len(audio.shape) > 1:
-                audio = np.mean(audio, axis=1)
-                logger.debug(f"Audio convertido a mono: {audio.shape}")
-
-            logger.debug(f"Audio cargado: {len(audio)} muestras, {sample_rate} Hz")
-
-            # Transcripción con Basic Pitch
+            # basic-pitch >= 0.4.0: predict() sólo acepta rutas de archivo como
+            # primer argumento; ya no soporta arrays en memoria.
+            # Los stems ya están en disco, los pasamos directamente.
             logger.info("Ejecutando modelo Basic Pitch...")
+
+            # minimum_note_length en v0.4.0+ está en muestras (default 127.7 ≈ 58 ms a 44.1 kHz)
             model_output, midi_data, note_events = predict(
-                audio_path=None,
-                audio=audio,
-                sample_rate=sample_rate,
+                audio_path=stem_path,
+                model_or_model_path=self.model_path,
                 onset_threshold=self.onset_threshold,
                 frame_threshold=self.frame_threshold,
                 minimum_note_length=self.minimum_note_length,
@@ -93,8 +83,7 @@ class AudioTranscriber:
                 maximum_frequency=self.maximum_frequency,
                 multiple_pitch_bends=False,
                 melodia_trick=True,
-                debug=False,
-                model_or_model_path=self.model_path,
+                debug_file=None,
             )
 
             # Guardar MIDI
@@ -186,26 +175,31 @@ class AudioTranscriber:
 
         return midi_files
 
-    def _save_note_events_csv(self, note_events: list[dict], csv_path: Path) -> None:
-        """Guarda eventos de notas como CSV."""
+    def _save_note_events_csv(self, note_events: list, csv_path: Path) -> None:
+        """Guarda eventos de notas como CSV.
+
+        En basic-pitch >= 0.4.0 cada evento es una tupla:
+        (start_time, end_time, pitch, amplitude, pitch_bends)
+        """
         if not note_events:
             logger.warning("No hay eventos de notas para guardar")
             return
 
-        fieldnames = ["start_time", "end_time", "pitch", "velocity", "confidence"]
+        fieldnames = ["start_time", "end_time", "pitch", "velocity"]
 
         with open(csv_path, "w", newline="") as csvfile:
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
 
             for event in note_events:
+                # Tupla: (start_time, end_time, pitch, amplitude, pitch_bends)
+                start_time, end_time, pitch, amplitude, *_ = event
                 writer.writerow(
                     {
-                        "start_time": event["start_time"],
-                        "end_time": event["end_time"],
-                        "pitch": event["pitch"],
-                        "velocity": event["amplitude"],
-                        "confidence": event["confidence"],
+                        "start_time": start_time,
+                        "end_time": end_time,
+                        "pitch": pitch,
+                        "velocity": amplitude,
                     }
                 )
 
