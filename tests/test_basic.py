@@ -15,31 +15,31 @@ def test_imports():
     logger.info("Probando importaciones...")
 
     try:
-        from src.willka import __version__
+        from willka import __version__
 
         logger.info(f"✓ WILLKA v{__version__}")
 
-        from src.willka.stem_separator import StemSeparator
+        from willka.stem_separator import StemSeparator
 
         logger.info("✓ StemSeparator importado")
 
-        from src.willka.transcriber import AudioTranscriber
+        from willka.transcriber import AudioTranscriber
 
         logger.info("✓ AudioTranscriber importado")
 
-        from src.willka.score_builder import ScoreBuilder
+        from willka.score_builder import ScoreBuilder
 
         logger.info("✓ ScoreBuilder importado")
 
-        from src.willka.exporter import ScoreExporter
+        from willka.exporter import ScoreExporter
 
         logger.info("✓ ScoreExporter importado")
 
-        from src.willka.pipeline import TranscriptionPipeline
+        from willka.pipeline import TranscriptionPipeline
 
         logger.info("✓ TranscriptionPipeline importado")
 
-        from src.willka.cli import app
+        from willka.cli import app
 
         logger.info("✓ CLI app importada")
 
@@ -56,7 +56,7 @@ def test_config():
     logger.info("Probando configuración...")
 
     try:
-        from src.willka.config import PipelineConfig, OBRA_METADATA, STEM_TO_INSTRUMENT
+        from willka.config import PipelineConfig, OBRA_METADATA, STEM_TO_INSTRUMENT
 
         config = PipelineConfig()
         logger.info(f"✓ Configuración cargada: {config}")
@@ -90,8 +90,8 @@ def test_pipeline_initialization():
     logger.info("Probando inicialización del pipeline...")
 
     try:
-        from src.willka.config import PipelineConfig
-        from src.willka.pipeline import TranscriptionPipeline
+        from willka.config import PipelineConfig
+        from willka.pipeline import TranscriptionPipeline
 
         config = PipelineConfig()
         config.device = "cpu"  # Forzar CPU para pruebas

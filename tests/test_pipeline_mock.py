@@ -46,8 +46,8 @@ def test_pipeline_with_mocks():
     """Prueba el pipeline completo con mocks."""
     logger.info("🧪 Probando pipeline WILLKA con mocks")
 
-    from src.willka.config import PipelineConfig
-    from src.willka.pipeline import TranscriptionPipeline
+    from willka.config import PipelineConfig
+    from willka.pipeline import TranscriptionPipeline
 
     # Configurar pipeline con mocks
     config = PipelineConfig()

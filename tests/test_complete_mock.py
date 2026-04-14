@@ -116,8 +116,8 @@ def test_complete_pipeline():
     # Paso 3: Probar construcción de partitura
     logger.info("\n📄 Probando construcción de partitura...")
     try:
-        from src.willka.config import PipelineConfig
-        from src.willka.score_builder import ScoreBuilder
+        from willka.config import PipelineConfig
+        from willka.score_builder import ScoreBuilder
 
         config = PipelineConfig()
         config.title = "Obra de Prueba"
@@ -149,7 +149,7 @@ def test_complete_pipeline():
 
         # Paso 4: Probar exportación (mock)
         logger.info("\n📤 Probando exportación...")
-        from src.willka.exporter import ScoreExporter
+        from willka.exporter import ScoreExporter
 
         exporter = ScoreExporter()
 

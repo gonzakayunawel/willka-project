@@ -141,10 +141,10 @@ frequency_range = 40-4200 Hz # Rango orquestal completo
 
 ```bash
 # Pruebas básicas
-python test_basic.py
+python tests/test_basic.py
 
 # Prueba completa con mocks
-python test_complete_mock.py
+python tests/test_complete_mock.py
 
 # Prueba de pipeline real (requiere ffmpeg)
 willka stems data/input/test_complex.wav --device cpu
@@ -351,10 +351,10 @@ frequency_range = 40-4200 Hz # Complete orchestral range
 
 ```bash
 # Basic tests
-python test_basic.py
+python tests/test_basic.py
 
 # Complete test with mocks
-python test_complete_mock.py
+python tests/test_complete_mock.py
 
 # Real pipeline test (requires ffmpeg)
 willka stems data/input/test_complex.wav --device cpu

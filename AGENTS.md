@@ -41,8 +41,8 @@ src/willka/
 5. **Music21 tiene bugs** - Algunos instrumentos no se importan correctamente
 
 ## Testing
-- `python test_basic.py` - Pruebas básicas de importación
-- `python test_complete_mock.py` - Pipeline completo con mocks
+- `python tests/test_basic.py` - Pruebas básicas de importación
+- `python tests/test_complete_mock.py` - Pipeline completo con mocks
 - Los tests reales requieren ffmpeg instalado
 
 ## Known Issues
@@ -54,5 +54,5 @@ src/willka/
 ## When Adding Features
 - Usar `uv add` para nuevas dependencias
 - Mantener compatibilidad con CPU (fallback de CUDA)
-- Probar con `python test_basic.py` primero
+- Probar con `python tests/test_basic.py` primero
 - Documentar requisitos adicionales (ej: ffmpeg)
