@@ -18,7 +18,7 @@ Recover orchestral scores from MP3 audio files, producing final output in MusicX
 
 ## 📁 Project Structure
 
-```
+```         
 willka/
 ├── data/
 │   ├── input/           # Input audio files
@@ -42,13 +42,14 @@ willka/
 ## 🛠️ Installation
 
 ### Prerequisites
+
 - Python 3.11+
 - `uv` (modern package manager)
 - MuseScore 4 (optional, for real export)
 
 ### Quick Installation
 
-```bash
+``` bash
 # 1. Clone repository
 git clone <repo-url>
 cd willka
@@ -67,7 +68,7 @@ willka check
 
 ### Install MuseScore 4 (recommended)
 
-```bash
+``` bash
 # Ubuntu/Debian
 sudo apt install software-properties-common
 sudo add-apt-repository ppa:mscore-ubuntu/mscore4-stable
@@ -82,7 +83,7 @@ mscore4 --version
 
 ### Main Commands
 
-```bash
+``` bash
 # Complete pipeline
 willka run audio.mp3 --device cuda --output results/
 
@@ -101,7 +102,7 @@ willka check
 
 ### Complete Example
 
-```bash
+``` bash
 # 1. Test with example audio
 willka run data/input/test_complex.wav --device cpu
 
@@ -111,14 +112,11 @@ ls -la data/output/
 
 ## 🔧 Configuration
 
-Configuration is managed through:
-- Default values in `src/willka/config.py`
-- Command line options
-- TOML configuration file (coming soon)
+Configuration is managed through: - Default values in `src/willka/config.py` - Command line options - TOML configuration file (coming soon)
 
 ### Key Transcription Parameters
 
-```python
+``` python
 # Optimized for orchestral music
 onset_threshold = 0.4      # Winds have soft attacks
 frame_threshold = 0.25     # Long string notes
@@ -128,7 +126,7 @@ frequency_range = 40-4200 Hz # Complete orchestral range
 
 ## 🧪 Testing
 
-```bash
+``` bash
 # Basic tests
 python test_basic.py
 
@@ -141,7 +139,7 @@ willka stems data/input/test_complex.wav --device cpu
 
 ## 📊 Processing Flow
 
-```
+```         
 INPUT: audio.mp3
         │
         ▼
@@ -161,21 +159,21 @@ OUTPUT: work.pdf, parts/*.pdf, png/*.png
 
 Each stem is mapped to instrumental families:
 
-| Stem | Instruments |
-|------|--------------|
-| `other` | Woodwinds and brass |
+| Stem     | Instruments                                      |
+| -------- | ------------------------------------------------ |
+| `other`  | Woodwinds and brass                              |
 | `guitar` | Strings (violins, violas, cellos, double basses) |
-| `bass` | Double basses |
-| `piano` | Harp, timpani |
-| `drums` | Orchestral percussion |
+| `bass`   | Double basses                                    |
+| `piano`  | Harp, timpani                                    |
+| `drums`  | Orchestral percussion                            |
 
 ## ⚠️ Known Limitations
 
-1. **Demucs requires ffmpeg/ffprobe** for some audio formats
-2. **Basic Pitch** may have issues with complex audio
-3. **MuseScore 4** must be installed for real export
-4. **Music21** has import issues with some instruments
-5. **GPU required** for fast processing of long audio
+1.  **Demucs requires ffmpeg/ffprobe** for some audio formats
+2.  **Basic Pitch** may have issues with complex audio
+3.  **MuseScore 4** must be installed for real export
+4.  **Music21** has import issues with some instruments
+5.  **GPU required** for fast processing of long audio
 
 ## 🚧 Future Work
 
@@ -201,6 +199,6 @@ MIT
 - **MIT** for music21
 - **MuseScore** for MuseScore 4
 
----
+------------------------------------------------------------------------
 
 *WILLKA Project — Recovering music that deserves to be preserved*
